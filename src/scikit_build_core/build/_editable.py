@@ -21,6 +21,13 @@ def __dir__() -> list[str]:
     return __all__
 
 
+def fstring_repr(d: dict[str, str]) -> str:
+    items = []
+    for k, v in d.items():
+        items.append(f"{k!r}: f{v!r}")
+    return "{" + ", ".join(items) + "}"
+
+
 def editable_redirect(
     *,
     modules: dict[str, str],
@@ -40,8 +47,6 @@ def editable_redirect(
     editable_txt: str = editable_py.read_text(encoding="utf-8")
 
     arguments = (
-        modules,
-        installed,
         os.fspath(reload_dir) if reload_dir else None,
         rebuild,
         verbose,
@@ -49,8 +54,8 @@ def editable_redirect(
         install_options,
         install_dir,
     )
-    arguments_str = ", ".join(repr(x) for x in arguments)
-    editable_txt += f"\n\ninstall({arguments_str})\n"
+    arguments_str = fstring_repr(modules) + ", " + fstring_repr(installed) + ", " + ", ".join(repr(x) for x in arguments)
+    editable_txt += f"\n\nroot_dir=os.getenv('CUDF_PYTHON_ROOT', '/home/coder/cudf/python/cudf')\ninstall({arguments_str})\n"
     return editable_txt
 
 
@@ -59,7 +64,7 @@ def mapping_to_modules(mapping: dict[str, str], libdir: Path) -> dict[str, str]:
     Convert a mapping of files to modules to a mapping of modules to installed files.
     """
     return {
-        path_to_module(Path(v).relative_to(libdir)): str(Path(k).resolve())
+        path_to_module(Path(v).relative_to(libdir)): "{root_dir}/" + str(Path(k))
         for k, v in mapping.items()
         if is_valid_module(Path(v).relative_to(libdir))
     }
